@@ -7,19 +7,25 @@ messages, a database updater, and a console visualizer.
 ## Requirements
 
 - Java 8+
-- Maven
 - RabbitMQ (default: localhost:5672, guest/guest)
 - MySQL with the TransIAP STC schema
 - `cliente_http.jar` (SNTN REST client)
 - `STC-DAO.jar` and the MySQL connector (for database updates)
+- RabbitMQ Java client JAR and JSON JAR (see `lib/` instructions below)
 
-Place the external JARs on the runtime classpath when launching the middleware or DB updater.
+Place the external JARs in the `lib/` folder at the project root so the provided Windows scripts can compile
+and run the project.
 
-## Build
+## Local dependencies (`lib/`)
 
-```bash
-mvn clean package
-```
+Create a `lib/` folder at the project root and drop the following JARs there:
+
+- `amqp-client-<version>.jar` (RabbitMQ Java client)
+- `json-<version>.jar` (org.json)
+- `cliente_http.jar` (provided)
+- `STC-DAO.jar` (provided)
+- `mysql-connector-java-<version>.jar` (MySQL driver)
+- `junit-platform-console-standalone-<version>.jar` (for tests)
 
 ## Configuration
 
@@ -51,38 +57,47 @@ DAO class overrides (only needed if your STC-DAO classes use packages):
 Start RabbitMQ and MySQL first. Then run the components (order is flexible, but middleware should be running
 before producers send data).
 
-### Producers
+### Database (MySQL)
 
-```bash
-mvn -q -Dexec.mainClass=com.transiap.producers.KmlProducer exec:java
-mvn -q -Dexec.mainClass=com.transiap.producers.GeoJsonProducer exec:java
-mvn -q -Dexec.mainClass=com.transiap.producers.CsvProducer exec:java
+The project expects a MySQL server with the TransIAP STC schema available. You can start MySQL in one of the
+following ways:
+
+- **Local service**: start your system MySQL service (e.g., `sudo systemctl start mysql`) and ensure the `stc`
+  database/schema is loaded.
+- **Docker**: run a MySQL container and load the STC schema inside it, then point the app to the container via
+  the `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, and `DB_NAME` environment variables.
+
+### Compile (Windows)
+
+```bat
+scripts\\compile-main.bat
 ```
 
-### Middleware
+### Run (Windows)
 
-```bash
-mvn -q -Dexec.mainClass=com.transiap.middleware.LogisticsMiddleware exec:java
+After compiling, run a component using `java -cp` and the `build\\classes` output. Example:
+
+```bat
+java -cp "build\\classes;lib\\*" com.transiap.middleware.LogisticsMiddleware
 ```
 
-Ensure `cliente_http.jar` is on the runtime classpath when launching the middleware.
+You can run the producers similarly:
 
-### Database updater
-
-```bash
-mvn -q -Dexec.mainClass=com.transiap.db.DatabaseUpdater exec:java
+```bat
+java -cp "build\\classes;lib\\*" com.transiap.producers.KmlProducer
+java -cp "build\\classes;lib\\*" com.transiap.producers.GeoJsonProducer
+java -cp "build\\classes;lib\\*" com.transiap.producers.CsvProducer
 ```
 
-Ensure `STC-DAO.jar` and the MySQL connector are on the runtime classpath.
+And the consumers:
 
-### Visualizer
-
-```bash
-mvn -q -Dexec.mainClass=com.transiap.visualizer.LocationVisualizer exec:java
+```bat
+java -cp "build\\classes;lib\\*" com.transiap.db.DatabaseUpdater
+java -cp "build\\classes;lib\\*" com.transiap.visualizer.LocationVisualizer
 ```
 
 ## Testing
 
-```bash
-mvn test
+```bat
+scripts\\run-tests.bat
 ```
